@@ -2,139 +2,21 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import styled from "styled-components";
-import { theme } from "@/styles/theme";
-
-const PageWrapper = styled.div`
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: ${theme.colors.gray[50]};
-  padding: 0 16px;
-`;
-
-const Card = styled.div`
-  width: 100%;
-  max-width: 448px;
-  background-color: ${theme.colors.white};
-  border-radius: 16px;
-  box-shadow: ${theme.shadows.md};
-  padding: 32px;
-`;
-
-const Header = styled.div`
-  margin-bottom: 32px;
-  text-align: center;
-`;
-
-const IconBox = styled.div`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 56px;
-  height: 56px;
-  border-radius: 16px;
-  background-color: ${theme.colors.brand[500]};
-  margin-bottom: 16px;
-`;
-
-const Title = styled.h1`
-  font-size: 24px;
-  font-weight: 700;
-  color: ${theme.colors.gray[900]};
-  margin: 0;
-`;
-
-const Subtitle = styled.p`
-  color: ${theme.colors.gray[500]};
-  font-size: 14px;
-  margin: 4px 0 0 0;
-`;
-
-const Form = styled.form`
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-`;
-
-const FieldGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-`;
-
-const Label = styled.label`
-  display: block;
-  font-size: 14px;
-  font-weight: 500;
-  color: ${theme.colors.gray[700]};
-  margin-bottom: 6px;
-`;
-
-const Input = styled.input`
-  width: 100%;
-  padding: 10px 16px;
-  border-radius: 8px;
-  border: 1px solid ${theme.colors.gray[300]};
-  color: ${theme.colors.gray[900]};
-  font-size: 14px;
-  font-family: ${theme.fonts.outfit};
-  background-color: ${theme.colors.white};
-  transition: border-color 150ms, box-shadow 150ms;
-  box-sizing: border-box;
-
-  &::placeholder {
-    color: ${theme.colors.gray[400]};
-  }
-
-  &:focus {
-    outline: none;
-    border-color: transparent;
-    box-shadow: 0 0 0 2px ${theme.colors.brand[500]};
-  }
-`;
-
-const ErrorAlert = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: ${theme.colors.error[600]};
-  background-color: ${theme.colors.error[50]};
-  border: 1px solid ${theme.colors.error[100]};
-  border-radius: 8px;
-  padding: 12px 16px;
-  font-size: 14px;
-`;
-
-const SubmitButton = styled.button<{ $loading: boolean }>`
-  width: 100%;
-  padding: 10px 16px;
-  background-color: ${theme.colors.brand[500]};
-  color: ${theme.colors.white};
-  font-size: 14px;
-  font-weight: 600;
-  font-family: ${theme.fonts.outfit};
-  border: none;
-  border-radius: 8px;
-  transition: background-color 150ms;
-  opacity: ${({ $loading }) => ($loading ? 0.6 : 1)};
-
-  &:hover:not(:disabled) {
-    background-color: ${theme.colors.brand[600]};
-  }
-
-  &:focus {
-    outline: none;
-    box-shadow: 0 0 0 2px ${theme.colors.white}, 0 0 0 4px ${theme.colors.brand[500]};
-  }
-`;
-
-const DemoNote = styled.p`
-  margin-top: 24px;
-  text-align: center;
-  font-size: 12px;
-  color: ${theme.colors.gray[400]};
-`;
+import {
+  PageWrapper,
+  Card,
+  Header,
+  IconBox,
+  Title,
+  Subtitle,
+  Form,
+  FieldGroup,
+  Label,
+  Input,
+  ErrorAlert,
+  SubmitButton,
+  DemoNote,
+} from "./LoginForm.styles";
 
 export default function LoginForm() {
   const { login } = useAuth();

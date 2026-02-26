@@ -5,104 +5,19 @@ import { ApexOptions } from "apexcharts";
 import { useFilters } from "@/context/FilterContext";
 import { useData } from "@/context/DataContext";
 import { applyFilters, groupByMonth } from "@/lib/filterUtils";
-import styled, { keyframes } from "styled-components";
 import { theme } from "@/styles/theme";
+import {
+  ChartCard,
+  ChartTitle,
+  SkeletonWrapper,
+  SkeletonTitle,
+  SkeletonBars,
+  SkeletonBar,
+  ChartScrollWrapper,
+  EmptyState,
+} from "./StackedBarChart.styles";
 
 const ReactApexChart = dynamic(() => import("react-apexcharts"), { ssr: false });
-
-const pulse = keyframes`
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-`;
-
-const ChartCard = styled.div`
-  background-color: ${theme.colors.white};
-  border-radius: 16px;
-  border: 1px solid ${theme.colors.gray[100]};
-  box-shadow: ${theme.shadows.xs};
-  padding: 20px;
-`;
-
-const ChartTitle = styled.h3`
-  font-size: 14px;
-  font-weight: 600;
-  color: ${theme.colors.gray[900]};
-  margin: 0 0 16px 0;
-`;
-
-const SkeletonWrapper = styled.div`
-  animation: ${pulse} 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 8px;
-`;
-
-const SkeletonTitle = styled.div`
-  height: 16px;
-  width: 192px;
-  background-color: ${theme.colors.gray[100]};
-  border-radius: 4px;
-`;
-
-const SkeletonBars = styled.div`
-  display: flex;
-  align-items: flex-end;
-  gap: 8px;
-  height: 208px;
-`;
-
-const SkeletonBar = styled.div<{ $height1: string; $height2: string }>`
-  flex: 1;
-  display: flex;
-  flex-direction: column-reverse;
-  gap: 4px;
-
-  &::before {
-    content: "";
-    display: block;
-    background-color: ${theme.colors.gray[100]};
-    border-radius: 4px;
-    height: ${({ $height1 }) => $height1};
-  }
-
-  &::after {
-    content: "";
-    display: block;
-    background-color: ${theme.colors.gray[100]};
-    border-radius: 4px;
-    height: ${({ $height2 }) => $height2};
-    opacity: 0.6;
-  }
-`;
-
-const ChartScrollWrapper = styled.div`
-  max-width: 100%;
-  overflow-x: auto;
-  scrollbar-width: thin;
-  scrollbar-color: ${theme.colors.gray[200]} transparent;
-
-  &::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-  &::-webkit-scrollbar-track {
-    border-radius: 999px;
-  }
-  &::-webkit-scrollbar-thumb {
-    background: ${theme.colors.gray[200]};
-    border-radius: 999px;
-  }
-`;
-
-const EmptyState = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 208px;
-  color: ${theme.colors.gray[400]};
-  font-size: 14px;
-`;
 
 function Skeleton() {
   return (
