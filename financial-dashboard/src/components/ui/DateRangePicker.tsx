@@ -3,7 +3,9 @@ import ReactDatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import styled, { createGlobalStyle } from "styled-components";
 import { theme } from "@/styles/theme";
-import type { ReactNode } from "react";
+import { createContext, useContext, useMemo, useCallback, type ReactNode } from "react";
+
+/* ─── global calendar overrides ─────────────────────────────────────────── */
 
 const DatePickerGlobal = createGlobalStyle`
   .react-datepicker {
@@ -11,7 +13,7 @@ const DatePickerGlobal = createGlobalStyle`
     border: 1px solid ${theme.colors.gray[200]};
     border-radius: 12px;
     box-shadow: ${theme.shadows.md};
-    overflow: hidden;
+    overflow: visible;
   }
   .react-datepicker__header {
     background-color: ${theme.colors.white};
@@ -22,6 +24,9 @@ const DatePickerGlobal = createGlobalStyle`
     font-size: 13px;
     font-weight: 600;
     color: ${theme.colors.gray[800]};
+  }
+  .react-datepicker__navigation {
+    top: calc(100% - 6px + 44px);
   }
   .react-datepicker__navigation-icon::before {
     border-color: ${theme.colors.gray[400]};
@@ -77,12 +82,12 @@ const DatePickerGlobal = createGlobalStyle`
   }
 `;
 
+/* ─── styled components ──────────────────────────────────────────────────── */
+
 const Wrapper = styled.div`
   width: 100%;
 
-  .react-datepicker-wrapper {
-    width: 100%;
-  }
+  .react-datepicker-wrapper,
   .react-datepicker__input-container {
     width: 100%;
   }
@@ -112,22 +117,14 @@ const StyledInput = styled.input`
   }
 `;
 
-const CalendarContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-
-  .react-datepicker__month-container {
-    float: none;
-  }
-`;
-
-const Presets = styled.div`
+const PresetsBar = styled.div`
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
   padding: 10px 12px;
   border-bottom: 1px solid ${theme.colors.gray[100]};
   background-color: ${theme.colors.white};
+  border-radius: 12px 12px 0 0;
 `;
 
 const PresetBtn = styled.button<{ $active?: boolean }>`
@@ -149,14 +146,51 @@ const PresetBtn = styled.button<{ $active?: boolean }>`
   }
 `;
 
-interface DateRangePickerProps {
-  startDate: string;
-  endDate: string;
-  minDate?: string;
-  maxDate?: string;
-  onStartChange: (date: string) => void;
-  onEndChange: (date: string) => void;
+/* ─── preset context (keeps CalendarContainer stable across re-renders) ──── */
+
+interface PresetItem {
+  label: string;
+  start: Date | null;
+  end: Date | null;
 }
+
+interface PresetsCtxValue {
+  presets: PresetItem[];
+  isActive: (p: PresetItem) => boolean;
+  apply: (s: Date | null, e: Date | null) => void;
+}
+
+const PresetsCtx = createContext<PresetsCtxValue>({
+  presets: [],
+  isActive: () => false,
+  apply: () => {},
+});
+
+// Defined at module level → stable reference → no remount on re-render
+function CalendarContainer({ className, children }: { className?: string; children: ReactNode }) {
+  const { presets, isActive, apply } = useContext(PresetsCtx);
+  return (
+    <div className={className} style={{ borderRadius: 12, overflow: "hidden" }}>
+      <PresetsBar>
+        {presets.map((p) => (
+          <PresetBtn
+            key={p.label}
+            $active={isActive(p)}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              apply(p.start, p.end);
+            }}
+          >
+            {p.label}
+          </PresetBtn>
+        ))}
+      </PresetsBar>
+      {children}
+    </div>
+  );
+}
+
+/* ─── helpers ────────────────────────────────────────────────────────────── */
 
 function toDate(str: string): Date | null {
   if (!str) return null;
@@ -195,6 +229,17 @@ function endOfMonth(d: Date): Date {
   return new Date(d.getFullYear(), d.getMonth() + 1, 0);
 }
 
+/* ─── main component ─────────────────────────────────────────────────────── */
+
+interface DateRangePickerProps {
+  startDate: string;
+  endDate: string;
+  minDate?: string;
+  maxDate?: string;
+  onStartChange: (date: string) => void;
+  onEndChange: (date: string) => void;
+}
+
 export default function DateRangePicker({
   startDate,
   endDate,
@@ -207,74 +252,66 @@ export default function DateRangePicker({
   const end = toDate(endDate);
   const min = toDate(minDate || "");
   const max = toDate(maxDate || "");
-
-  // Use maxDate from data as "today" reference for presets
   const reference = max ?? new Date();
 
-  const handleChange = (dates: [Date | null, Date | null]) => {
-    const [s, e] = dates;
-    onStartChange(toStr(s));
-    onEndChange(toStr(e));
-  };
-
-  const applyPreset = (s: Date | null, e: Date | null) => {
-    onStartChange(toStr(s));
-    onEndChange(toStr(e));
-  };
-
-  const presets = [
-    { label: "All", start: null, end: null },
-    {
-      label: "Last month",
-      start: startOfMonth(subMonths(reference, 1)),
-      end: endOfMonth(subMonths(reference, 1)),
+  const apply = useCallback(
+    (s: Date | null, e: Date | null) => {
+      onStartChange(toStr(s));
+      onEndChange(toStr(e));
     },
-    { label: "3 months", start: subMonths(reference, 3), end: reference },
-    { label: "6 months", start: subMonths(reference, 6), end: reference },
-    { label: "12 months", start: subMonths(reference, 12), end: reference },
-  ];
+    [onStartChange, onEndChange]
+  );
 
-  function isActivePreset(ps: typeof presets[number]) {
-    if (!ps.start && !ps.end) return !startDate && !endDate;
-    return toStr(ps.start) === startDate && toStr(ps.end) === endDate;
-  }
+  const presets = useMemo<PresetItem[]>(
+    () => [
+      { label: "All", start: null, end: null },
+      {
+        label: "Last month",
+        start: startOfMonth(subMonths(reference, 1)),
+        end: endOfMonth(subMonths(reference, 1)),
+      },
+      { label: "3 months", start: subMonths(reference, 3), end: reference },
+      { label: "6 months", start: subMonths(reference, 6), end: reference },
+      { label: "12 months", start: subMonths(reference, 12), end: reference },
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [maxDate]
+  );
 
-  const CalendarWrapper = ({ children }: { children: ReactNode }) => (
-    <CalendarContainer>
-      <Presets>
-        {presets.map((p) => (
-          <PresetBtn
-            key={p.label}
-            $active={isActivePreset(p)}
-            onMouseDown={(e) => {
-              e.preventDefault();
-              applyPreset(p.start, p.end);
-            }}
-          >
-            {p.label}
-          </PresetBtn>
-        ))}
-      </Presets>
-      {children}
-    </CalendarContainer>
+  const isActive = useCallback(
+    (p: PresetItem) => {
+      if (!p.start && !p.end) return !startDate && !endDate;
+      return toStr(p.start) === startDate && toStr(p.end) === endDate;
+    },
+    [startDate, endDate]
+  );
+
+  const handleChange = useCallback(
+    (dates: [Date | null, Date | null]) => {
+      apply(dates[0], dates[1]);
+    },
+    [apply]
   );
 
   return (
-    <Wrapper>
-      <DatePickerGlobal />
-      <ReactDatePicker
-        selectsRange
-        startDate={start ?? undefined}
-        endDate={end ?? undefined}
-        minDate={min ?? undefined}
-        maxDate={max ?? undefined}
-        onChange={handleChange}
-        placeholderText="All period"
-        customInput={<StyledInput readOnly value={formatDisplay(start, end)} />}
-        calendarContainer={CalendarWrapper}
-        popperPlacement="bottom-start"
-        showPopperArrow={false}
-      />
-    </Wrapper>
+    <PresetsCtx.Provider value={{ presets, isActive, apply }}>
+      <Wrapper>
+        <DatePickerGlobal />
+        <ReactDatePicker
+          selectsRange
+          startDate={start ?? undefined}
+          endDate={end ?? undefined}
+          minDate={min ?? undefined}
+          maxDate={max ?? undefined}
+          onChange={handleChange}
+          placeholderText="All period"
+          customInput={<StyledInput readOnly value={formatDisplay(start, end)} />}
+          calendarContainer={CalendarContainer}
+          popperPlacement="bottom-start"
+          showPopperArrow={false}
+          popperProps={{ style: { zIndex: 100 } }}
+        />
+      </Wrapper>
+    </PresetsCtx.Provider>
   );
 }
