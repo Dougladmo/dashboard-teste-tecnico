@@ -14,6 +14,7 @@ export const ChartCard = styled.div`
   border: 1px solid ${theme.colors.gray[100]};
   box-shadow: ${theme.shadows.xs};
   padding: 20px;
+  min-width: 0;
 `;
 
 export const ChartTitle = styled.h3`
